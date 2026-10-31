@@ -264,7 +264,7 @@ function home() {
       <p class="foot">매 회차 과목별 출제 수(17 · 10 · 18 · 5)대로 과목마다 무작위로 뽑습니다. 채점 후 모든 문항에 정답 이유와 보기별 풀이를 보여 줍니다.</p>
     </div>
     <div class="block">
-      <h2 class="sec">과목별 풀이 · 바로 채점</h2>
+      <h2 class="sec">과목별 풀이 · 바로 채점 · 문항당 30초</h2>
       <div class="opts-row">
         <label for="pcnt">문항 수 <select id="pcnt" onchange="PREF.cnt=this.value;savePref()">
           ${["10","20","30","all"].map(v => `<option value="${v}" ${PREF.cnt === v ? "selected" : ""}>${v === "all" ? "전체" : v + "문항"}</option>`).join("")}</select></label>
@@ -404,13 +404,13 @@ function renderResult() {
       <h2 class="sec">문항 검토</h2>
       <div class="filters">${[["ng","틀린 문항 " + cnt.ng],["all","전체 " + n],["fl","표시한 문항 " + cnt.fl]].map(([f, l]) => `<button class="chip ${reviewFilter === f ? "on" : ""}" onclick="reviewFilter='${f}';renderResult()">${l}</button>`).join("")}</div>
       <div class="review">${list.length ? list.map(({i, k, st}) => `<article class="rv ${st}">
-        <div class="qhead"><span class="qno" style="font-size:20px">${k + 1}</span><span class="stt ${st}">${st === "ok" ? "정답" : st === "ng" ? "오답" : "미응답"}</span><span class="tag">${SUBJ[Q[i].s]}</span><span class="tag">${srcLine(Q[i])}</span></div>
+        <div class="qhead"><span class="qno" style="font-size:20px">${k + 1}</span><span class="stt ${st}">${st === "ok" ? "정답" : S.ans[k] === -1 ? "시간 초과" : st === "ng" ? "오답" : "미응답"}</span><span class="tag">${SUBJ[Q[i].s]}</span><span class="tag">${srcLine(Q[i])}</span></div>
         ${qBody(i)}${expBox(Q[i])}${optList(i, S.ans[k])}</article>`).join("") : `<p class="foot">해당하는 문항이 없습니다.</p>`}</div>
     </div></section>`;
 }
 function retryWrong() {
   const items = S.items.filter((i, k) => S.ans[k] !== Q[i].a);
-  beginPractice({title:"틀린 문항 다시 풀기", items});
+  beginPractice({title:"틀린 문항 다시 풀기", items, timed:false});
 }
 
 /* ---------- practice (instant feedback) ---------- */
@@ -423,18 +423,32 @@ function startPractice(s, wrongOnly) {
   if (PREF.cnt !== "all") pool = pool.slice(0, +PREF.cnt);
   beginPractice({title:(s ? SUBJ[s] : "전 과목") + (wrongOnly ? " 오답" : " 풀이"), items:pool});
 }
+// 과목별 풀이: 문항마다 Q_SEC초. 시간이 지나면 오답(-1)으로 기록하고 정답을 보여 준다.
+// 기한은 문항별로 처음 볼 때 정해지며, 다른 문항으로 넘어가도 계속 흐른다.
+const Q_SEC = 30, TIMEOUT = -1;
 function beginPractice(o) {
   clearInterval(timerId);
-  S = Object.assign(o, {mode:"practice", ans:Array(o.items.length).fill(null), cur:0});
+  S = Object.assign({timed:true}, o, {mode:"practice", ans:Array(o.items.length).fill(null), dl:Array(o.items.length).fill(0), cur:0});
+  if (S.timed) timerId = setInterval(ptick, 200);
   renderPractice(); scrollTo(0, 0);
 }
+function ptick() {
+  if (!S || S.mode !== "practice" || !S.timed) return;
+  const el = $("#ptimer");
+  if (S.ans[S.cur] !== null) { if (el) el.hidden = true; return; }
+  const left = Math.max(0, S.dl[S.cur] - Date.now());
+  if (el) { el.hidden = false; el.textContent = `${Math.ceil(left / 1000)}초`; el.classList.toggle("warn", left < 10000); }
+  if (left <= 0) { S.ans[S.cur] = TIMEOUT; record(S.items[S.cur], false); renderPractice(); }
+}
 function renderPractice() {
+  if (S.timed && S.ans[S.cur] === null && !S.dl[S.cur]) S.dl[S.cur] = Date.now() + Q_SEC * 1000;
   const n = S.items.length, i = S.items[S.cur], q = Q[i], mine = S.ans[S.cur], answered = mine !== null;
   const ok = S.ans.filter((a, k) => a !== null && a === Q[S.items[k]].a).length, done = S.ans.filter(a => a !== null).length;
   $("#bar").innerHTML = `<button class="brand" onclick="home()">네트워크관리사 2급<small>${esc(S.title)}</small></button><span class="sp"></span>
-    <span class="prog num">${S.cur + 1}/${n} · 맞힘 ${ok}/${done}</span><button class="btn" onclick="practiceDone()">그만 풀고 결과 보기</button>`;
+    <span class="prog num">${S.cur + 1}/${n} · 맞힘 ${ok}/${done}</span><span class="timer" id="ptimer" title="문항당 ${Q_SEC}초" hidden></span><button class="btn" onclick="practiceDone()">그만 풀고 결과 보기</button>`;
   const st = STATS[q.id];
-  const fb = answered ? `<div class="fb ${mine === q.a ? "ok" : "ng"}"><strong>${mine === q.a ? "정답입니다" : `오답입니다 · 정답 ${C[q.a]}`}</strong>${expBox(q)}</div>` : "";
+  const head = mine === q.a ? "정답입니다" : mine === TIMEOUT ? `시간 초과 · 오답 처리 · 정답 ${C[q.a]}` : `오답입니다 · 정답 ${C[q.a]}`;
+  const fb = answered ? `<div class="fb ${mine === q.a ? "ok" : "ng"}"><strong>${head}</strong>${expBox(q)}</div>` : "";
   $("#app").innerHTML = `<div class="exam solo"><article class="qcard">
     <div class="qhead"><span class="qno">${S.cur + 1}</span><span class="tag">${q.s}과목 ${SUBJ[q.s]}</span><span class="tag">${srcLine(q)}</span>
       ${st ? `<span class="tag">기록 ${st.c}/${st.t}</span>` : ""}</div>
@@ -443,12 +457,14 @@ function renderPractice() {
     ${fb}
     <div class="nav"><button class="btn" onclick="pgo(S.cur-1)" ${S.cur ? "" : "disabled"}>이전</button><span class="sp"></span>
       ${S.cur < n - 1 ? `<button class="btn primary" onclick="pgo(S.cur+1)">다음 문제</button>` : `<button class="btn primary" onclick="practiceDone()">결과 보기</button>`}</div>
-    <p class="kbd">키보드: 1–4 답 선택 · ←/→ 또는 Enter 이동</p>
+    <p class="kbd">${S.timed ? `문항당 ${Q_SEC}초 · 시간이 지나면 오답으로 처리됩니다 · ` : ""}키보드: 1–4 답 선택 · ←/→ 또는 Enter 이동</p>
   </article></div>`;
+  ptick();
 }
 function answer(o) { if (S.ans[S.cur] !== null) return; S.ans[S.cur] = o; record(S.items[S.cur], o === Q[S.items[S.cur]].a); renderPractice(); }
 function pgo(k) { if (k < 0 || k >= S.items.length) return; S.cur = k; renderPractice(); $(".qcard").scrollIntoView({block:"start"}); }
 function practiceDone() {
+  clearInterval(timerId);
   const done = S.items.map((i, k) => k).filter(k => S.ans[k] !== null);
   if (!done.length) return home();
   S.items = done.map(k => S.items[k]); S.ans = done.map(k => S.ans[k]);
