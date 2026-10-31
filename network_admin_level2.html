@@ -1,6 +1,4 @@
-<!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
-<title>네트워크관리사 2급 모의고사</title>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><title>네트워크관리사 2급 모의고사</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,6 +37,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .bar .sp{flex:1}
 .timer{font-family:var(--mono);font-size:20px;font-weight:600;padding:2px 10px;border:1.5px solid var(--ink);border-radius:4px}
 .timer.warn{color:var(--bad);border-color:var(--bad)}
+.qtimer{font-family:var(--mono);font-size:14px;font-weight:600;padding:1px 8px;border:1.5px solid var(--ink);border-radius:4px}
+.qtimer.warn{color:var(--bad);border-color:var(--bad)}
 .prog{font-size:13px;color:var(--muted)}
 .btn{border:1.5px solid var(--ink);background:var(--sheet);padding:8px 14px;border-radius:4px;font-weight:600}
 .btn.primary{background:var(--acc);border-color:var(--acc);color:var(--sheet)}
@@ -306,14 +306,17 @@ function startMock() {
 }
 function startExam(d) { beginExam({kind:"past", date:d, title:fmtDate(d) + " 기출", items:EXAMS[d].slice()}); }
 function beginExam(o) {
-  S = Object.assign(o, {mode:"exam", ans:Array(o.items.length).fill(null), flags:new Set(), cur:0, end:Date.now() + EXAM_MIN * 60000});
-  clearInterval(timerId); timerId = setInterval(tick, 1000);
+  S = Object.assign(o, {mode:"exam", ans:Array(o.items.length).fill(null), flags:new Set(), cur:0, end:Date.now() + EXAM_MIN * 60000, dl:Array(o.items.length).fill(0)});
+  clearInterval(timerId); timerId = setInterval(tick, 250);
   renderExam(); scrollTo(0, 0);
 }
 function tick() {
   if (!S || S.mode !== "exam") return clearInterval(timerId);
   const left = Math.max(0, S.end - Date.now()), el = $("#timer");
   if (el) { el.textContent = `${String(left / 60000 | 0).padStart(2, "0")}:${String((left / 1000 | 0) % 60).padStart(2, "0")}`; el.classList.toggle("warn", left < 5 * 60000); }
+  // 모의고사 문항당 30초: 표시만 하고 0초에서 멈춤 (채점에는 영향 없음)
+  const qel = $("#qtimer");
+  if (qel) { const ql = Math.max(0, S.dl[S.cur] - Date.now()); qel.textContent = `${Math.ceil(ql / 1000)}초`; qel.classList.toggle("warn", ql < 10000); }
   if (left <= 0) { clearInterval(timerId); finishExam(true); }
 }
 function qBody(i, extra = "") {
@@ -324,8 +327,8 @@ function renderExam() {
   const n = S.items.length, done = S.ans.filter(a => a !== null).length;
   $("#bar").innerHTML = `<button class="brand" onclick="askQuit()">네트워크관리사 2급<small>${esc(S.title)}</small></button><span class="sp"></span>
     <span class="prog num">${done}/${n} 답안</span><span class="timer" id="timer">--:--</span><button class="btn primary" onclick="askSubmit()">답안 제출</button>`;
-  tick();
   const i = S.items[S.cur], q = Q[i];
+  if (S.kind === "mock" && !S.dl[S.cur]) S.dl[S.cur] = Date.now() + Q_SEC * 1000;
   let omr = "", last = 0;
   S.items.forEach((qi, k) => {
     if (Q[qi].s !== last) { last = Q[qi].s; omr += `<div class="sh">${last}과목 · ${SUBJ[last]}</div>`; }
@@ -334,7 +337,7 @@ function renderExam() {
   const srcTag = S.kind === "mock" ? `<span class="tag">${fmtDate(q.src[0][0])} ${q.src[0][1]}번</span>` : "";
   $("#app").innerHTML = `<div class="exam">
     <article class="qcard">
-      <div class="qhead"><span class="qno">${S.cur + 1}</span><span class="tag">${q.s}과목 ${SUBJ[q.s]}</span>${srcTag}
+      <div class="qhead"><span class="qno">${S.cur + 1}</span><span class="tag">${q.s}과목 ${SUBJ[q.s]}</span>${srcTag}${S.kind === "mock" ? `<span class="qtimer" id="qtimer" title="문항당 ${Q_SEC}초 (점수 영향 없음)"></span>` : ""}
         <button class="flagbtn ${S.flags.has(S.cur) ? "on" : ""}" onclick="flag()">${S.flags.has(S.cur) ? "표시됨" : "나중에 다시 보기"}</button></div>
       ${qBody(i)}
       <div class="opts">${q.o.map((t, o) => `<button class="opt ${S.ans[S.cur] === o ? "sel" : ""}" onclick="pick(${o})"><span class="bub">${o + 1}</span><span>${esc(t)}</span></button>`).join("")}</div>
@@ -344,6 +347,7 @@ function renderExam() {
     </article>
     <aside class="omr" aria-label="답안지"><h3><span>OMR 답안지</span><span class="num">${done}/${n}</span></h3><div class="omr-grid">${omr}</div>
       <p class="legend">번호에 물결 밑줄 = 다시 볼 문항</p></aside></div>`;
+  tick();
 }
 function go(k) { if (k < 0 || k >= S.items.length) return; S.cur = k; renderExam(); if (innerWidth <= 860) $(".qcard").scrollIntoView({block:"start"}); }
 function pick(o, k = S.cur) { S.ans[k] = S.ans[k] === o ? null : o; renderExam(); }
@@ -489,5 +493,4 @@ document.addEventListener("keydown", e => {
 
 home();
 </script>
-
 </body></html>
