@@ -410,7 +410,7 @@ function renderResult() {
 }
 function retryWrong() {
   const items = S.items.filter((i, k) => S.ans[k] !== Q[i].a);
-  beginPractice({title:"틀린 문항 다시 풀기", items, timed:false});
+  beginPractice({title:"틀린 문항 다시 풀기", items});
 }
 
 /* ---------- practice (instant feedback) ---------- */
