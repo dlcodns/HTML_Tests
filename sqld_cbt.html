@@ -5,24 +5,24 @@
 <style>
 /* Layout: OMR answer-card exam — question sheet left, printed OMR column right (stacks on phones); database teal ink */
 :root{
-  --paper:#F4F7F7; --sheet:#FFFFFF; --ink:#152224; --muted:#5B6B6E; --line:#D9E3E4;
-  --acc:#0E6F72; --acc-soft:#DFF0EF; --mark:#152224;
-  --good:#22775A; --good-soft:#E0F1EA; --bad:#B24A2A; --bad-soft:#F7E6DF; --off:#7F8A8D; --off-soft:#ECEFF0;
-  --warn:#9A6A00; --warn-soft:#FBF1D9; --code:#F1F5F5;
+  --paper:#F5F7F8; --sheet:#FFFFFF; --ink:#16202A; --muted:#5E6B76; --line:#DCE3E8;
+  --acc:#1F5FA8; --acc-soft:#E3ECF7; --mark:#16202A;
+  --good:#22775A; --good-soft:#E0F1EA; --bad:#B24A2A; --bad-soft:#F7E6DF; --off:#7F8A93; --off-soft:#ECEFF2;
+  --warn:#9A6A00; --warn-soft:#FBF1D9; --code:#F1F4F7;
   --display:"Black Han Sans","IBM Plex Sans KR",system-ui,sans-serif;
   --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#111819; --sheet:#1A2324; --ink:#E7EFEF; --muted:#98A9AB; --line:#2D3A3C;
-  --acc:#5CC4C2; --acc-soft:#173335; --mark:#E7EFEF;
-  --good:#5CC79C; --good-soft:#16332A; --bad:#EE916E; --bad-soft:#3A2219; --off:#8C9A9C; --off-soft:#253031;
-  --warn:#E5B85C; --warn-soft:#352B14; --code:#141C1D; color-scheme:dark}}
+  --paper:#12171C; --sheet:#1B2229; --ink:#E9EEF2; --muted:#9AA7B2; --line:#2E3842;
+  --acc:#6FA8EE; --acc-soft:#1E2E42; --mark:#E9EEF2;
+  --good:#5CC79C; --good-soft:#16332A; --bad:#EE916E; --bad-soft:#3A2219; --off:#8C98A2; --off-soft:#262E36;
+  --warn:#E5B85C; --warn-soft:#352B14; --code:#151B21; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --paper:#111819; --sheet:#1A2324; --ink:#E7EFEF; --muted:#98A9AB; --line:#2D3A3C;
-  --acc:#5CC4C2; --acc-soft:#173335; --mark:#E7EFEF;
-  --good:#5CC79C; --good-soft:#16332A; --bad:#EE916E; --bad-soft:#3A2219; --off:#8C9A9C; --off-soft:#253031;
-  --warn:#E5B85C; --warn-soft:#352B14; --code:#141C1D; color-scheme:dark}
+  --paper:#12171C; --sheet:#1B2229; --ink:#E9EEF2; --muted:#9AA7B2; --line:#2E3842;
+  --acc:#6FA8EE; --acc-soft:#1E2E42; --mark:#E9EEF2;
+  --good:#5CC79C; --good-soft:#16332A; --bad:#EE916E; --bad-soft:#3A2219; --off:#8C98A2; --off-soft:#262E36;
+  --warn:#E5B85C; --warn-soft:#352B14; --code:#151B21; color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
@@ -156,7 +156,7 @@ h2.sec{font-size:13px;letter-spacing:.1em;color:var(--muted);margin:0;font-weigh
 .osh.on{border-style:solid;color:var(--ink)}
 .legend{font-size:12px;color:var(--muted);margin-top:8px}
 
-.scrim{position:fixed;inset:0;background:rgba(10,16,18,.5);display:grid;place-items:center;z-index:20;padding:16px}
+.scrim{position:fixed;inset:0;background:rgba(10,14,20,.5);display:grid;place-items:center;z-index:20;padding:16px}
 .modal{background:var(--sheet);border:1.5px solid var(--ink);border-radius:8px;padding:24px;max-width:420px;width:100%}
 .modal h2{margin:0 0 8px;font-size:20px}
 .modal p{margin:0 0 16px;color:var(--muted)}
